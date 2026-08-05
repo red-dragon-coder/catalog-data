@@ -1,0 +1,571 @@
+name: Update Catalog Data
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # Каждые 6 часов
+  workflow_dispatch:       # Ручной запуск
+  push:
+    branches:
+      - main
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18'
+      
+      - name: Fetch and process catalog data
+        run: |
+          node -e "
+            const fs = require('fs');
+            
+            // ============================================================
+            // ИСТОЧНИКИ ДАННЫХ (ПОЛНОСТЬЮ ИЗ ВАШЕГО КОДА)
+            // ============================================================
+            const SOURCES = [
+              {name:'CHANGAN', url:'https://api.apify.com/v2/datasets/nEIctPhrH8fheg3OA/items?signature=MC4xNzg2MDIxNjEwODMzLmUyODJUeVBZVW1ka0l6S0dOeTd5&format=json&clean=true'},
+              {name:'BYD', url:'https://api.apify.com/v2/datasets/uY1vt31jIbmUzkCKT/items?signature=MC4xNzg2MDIxOTEyMTMxLjF6WEM3aHYybFBNQVJEeUVmdHIzYw&format=json&clean=true'},
+              {name:'ZEEKR', url:'https://api.apify.com/v2/datasets/hL5YgFHLhdv3zyyWK/items?signature=MC4xNzg2MDIyMzYzMDEyLkdvUGJaMWZ3cWFvQ1gwd2xWbkJH&format=json&clean=true'},
+              {name:'LIXIANG', url:'https://api.apify.com/v2/datasets/r8732nMxpXciRo3NG/items?signature=MC4xNzg2MDIyNzIwNTUzLlYxMTlzOFd1ODJkajNIbzFGWk0y&format=json&clean=true'},
+              {name:'VOYAH', url:'https://api.apify.com/v2/datasets/lnfjLsU1j6lJygvdE/items?signature=MC4xNzg2MDIzMzU4MTgxLjFQeDBEV2RvdWJpejg4VVFlbllvVQ&format=json&clean=true'},
+              {name:'HONGQI', url:'https://api.apify.com/v2/datasets/Joz5GlJsoNgfJyVnz/items?signature=MC4xNzg2MDIzNTM3NjM3LjFLRjFSdHg2UFU1ZEhYWHdhbWtRaw&format=json&clean=true'},
+              {name:'GEELY', url:'https://api.apify.com/v2/datasets/ODGy0M6c3k1QujeKi/items?signature=MC4xNzg2MDIzNzk0MDU1LjE3UWNqWUV6cXQxSEFFdGNVRkZsbg&format=json&clean=true'},
+              {name:'DEEPAL', url:'https://api.apify.com/v2/datasets/6MMSCqJ9FRbKyi2w8/items?signature=MC4xNzg2MDIzOTcwOTUyLlc5V01jYVE5M3dqckhYZWNBYVFW&format=json&clean=true'},
+              {name:'MERCEDES-BENZ', url:'https://api.apify.com/v2/datasets/PAu32soTUEiDbzd0S/items?signature=MC4xNzg2MDI0NDMxOTk2LjFxSnhHQTdleUdQbW51blN3T0xrNQ&format=json&clean=true'},
+              {name:'BMW', url:'https://api.apify.com/v2/datasets/sgqrjBDKJvRNt1qLG/items?signature=MC4xNzg2MDI0ODAxOTUzLjFkV2RkUGdPVk9vV1EwM3BkdWM4UA&format=json&clean=true'},
+              {name:'AUDI', url:'https://api.apify.com/v2/datasets/c1bUW40SXB63S7pCU/items?signature=MC4xNzg2MDI0OTQwNTg2LngyQ2RJZ3BrN0hVSUhBemNWem5M&format=json&clean=true'},
+              {name:'VOLKSWAGEN', url:'https://api.apify.com/v2/datasets/ORl2ea0k2JFVWBAC4/items?signature=MC4xNzg2MDI1MDk5ODM3LjEydDUzWW9DNFJmUW9veFprbVN5UQ&format=json&clean=true'},
+              {name:'TOYOTA', url:'https://api.apify.com/v2/datasets/zCHkRwek2v7m6wQ3Q/items?signature=MC4xNzg2MDI1MjQ4NTExLjdUdWlRczZNSlE1UUNvT20zVnA3&format=json&clean=true'},
+              {name:'NISSAN', url:'https://api.apify.com/v2/datasets/Y1jy2JsHc4Ia2PG0E/items?signature=MC4xNzg2MDI1NTEzOTcyLjF0YkwwSjVJT2RXR2N1SThkZHNvWg&format=json&clean=true'},
+              {name:'MAZDA', url:'https://api.apify.com/v2/datasets/knj8DVdcgOjnPbncu/items?signature=MC4xNzg2MDI1NjQ3MDI5LjFrWHJBYmxxc1F2d0ZNV3lvekY4Uw'},
+              {name:'HYUNDAI', url:'https://api.apify.com/v2/datasets/UWDLRB4mczX73hruW/items?signature=MC4xNzg2MDI1NzQwNzI0LjFiSWZhSUJ5Yk03dTE2S2d3VGtXNw&format=json&clean=true'}
+            ];
+            
+            // ============================================================
+            // РАСШИРЕННЫЙ СЛОВАРЬ ПЕРЕВОДА (ПОЛНОСТЬЮ ИЗ ВАШЕГО КОДА)
+            // ============================================================
+            const TRANSLATIONS = {
+              '宝马':'BMW','奔驰':'Mercedes-Benz','奥迪':'Audi','大众':'Volkswagen',
+              '丰田':'Toyota','日产':'Nissan','本田':'Honda','马自达':'Mazda',
+              '现代':'Hyundai','长安':'Changan','比亚迪':'BYD','极氪':'Zeekr',
+              '理想':'Li Auto','岚图':'Voyah','红旗':'Hongqi','吉利':'Geely',
+              '深蓝':'Deepal','奇瑞':'Chery','长城':'Great Wall','哈弗':'Haval',
+              '魏牌':'WEY','坦克':'Tank','欧拉':'Ora','哪吒':'Neta',
+              '零跑':'Leapmotor','高合':'HiPhi','威马':'WM Motor','爱驰':'Aiways',
+              '云度':'Yudo','国金':'Guojin','天际':'ENOVATE','拜腾':'Byton',
+              '奇点':'Singulato','前途':'Qiantu','赛力斯':'Seres','问界':'AITO',
+              '阿维塔':'Avatr','智己':'IM Motors','飞凡':'Rising Auto','恒驰':'Hengchi',
+              '合创':'Hycan','创维':'Skyworth','雷丁':'Leiden','知豆':'ZD',
+              '康迪':'Kandi','华晨':'Brilliance','江淮':'JAC','江铃':'JMC',
+              '福田':'Foton','金龙':'King Long','宇通':'Yutong','中通':'Zhongtong',
+              '安凯':'Ankai','黄海':'Huanghai','金杯':'Jinbei','五菱':'Wuling',
+              '宝骏':'Baojun','荣威':'Roewe','名爵':'MG','北京':'Beijing',
+              '绅宝':'Senova','威旺':'Weiwang','幻速':'Huansu','比速':'Bisu',
+              '斯威':'SWM','华泰':'Hawtai','众泰':'Zotye','力帆':'Lifan',
+              '海马':'Haima','东南':'Soueast','纳智捷':'Luxgen','猎豹':'Leopaard',
+              '野马':'Yema','陆风':'Landwind','中兴':'ZX Auto','双龙':'SsangYong',
+              '福迪':'Fudi','卡威':'Kawin','大运':'Dayun','南京依维柯':'NAVECO',
+              '沈阳金杯':'Shenyang Jinbei','长安商用':'Changan Commercial',
+              '福田欧曼':'Foton Auman','东风商用':'Dongfeng Commercial',
+              '一汽解放':'FAW Jiefang','中国重汽':'Sinotruk','陕汽':'Shaanxi Automobile',
+              '北奔':'Beiben','铃木':'Suzuki','三菱':'Mitsubishi','斯巴鲁':'Subaru',
+              '五十铃':'Isuzu','日野':'Hino','大发':'Daihatsu','英菲尼迪':'Infiniti',
+              '讴歌':'Acura','起亚':'Kia','大宇':'Daewoo','捷尼赛思':'Genesis',
+              '雷诺三星':'Renault Samsung','欧宝':'Opel','迈巴赫':'Maybach',
+              'Smart':'Smart','曼恩':'MAN','斯堪尼亚':'Scania','标致':'Peugeot',
+              '雪铁龙':'Citroën','雷诺':'Renault','布加迪':'Bugatti',
+              'DS':'DS Automobiles','阿尔派':'Alpine','菲亚特':'Fiat',
+              '法拉利':'Ferrari','兰博基尼':'Lamborghini','玛莎拉蒂':'Maserati',
+              '阿尔法·罗密欧':'Alfa Romeo','帕加尼':'Pagani','蓝旗亚':'Lancia',
+              '阿巴斯':'Abarth','依维柯':'Iveco','阿斯顿·马丁':'Aston Martin',
+              '宾利':'Bentley','劳斯莱斯':'Rolls-Royce','路特斯':'Lotus',
+              '迈凯伦':'McLaren','摩根':'Morgan','卡特汉姆':'Caterham',
+              'Mini':'Mini','沃克斯豪尔':'Vauxhall','沃尔沃':'Volvo',
+              '萨博':'Saab','科尼赛克':'Koenigsegg','西雅特':'SEAT',
+              '斯柯达':'Skoda','拉达':'Lada','福特':'Ford',
+              '雪佛兰':'Chevrolet','别克':'Buick','凯迪拉克':'Cadillac',
+              '道奇':'Dodge','克莱斯勒':'Chrysler','吉普':'Jeep','林肯':'Lincoln',
+              'GMC':'GMC','Ram':'Ram','悍马':'Hummer','土星':'Saturn',
+              '庞蒂亚克':'Pontiac','奥兹莫比尔':'Oldsmobile','水星':'Mercury',
+              '鹰':'Eagle','AMC':'AMC','普利茅斯':'Plymouth',
+              'Rivian':'Rivian','Lucid':'Lucid','Fisker':'Fisker','Bollinger':'Bollinger',
+              'Canoo':'Canoo','Lordstown':'Lordstown','Nikola':'Nikola',
+              '霍顿':'Holden','塔塔':'Tata','马恒达':'Mahindra','巴贾杰':'Bajaj',
+              'Force':'Force','TOFAS':'TOFAS','Karsan':'Karsan','BMC':'BMC',
+              '宝腾':'Proton','北鹿大':'Perodua','Thai Rung':'Thai Rung',
+              'Birkin':'Birkin','Global':'Global','威兹曼':'Wiesmann',
+              '阿尔宾娜':'Alpina','巴博斯':'Brabus','Mansory':'Mansory',
+              '霍夫勒':'Hofele','劳伦士':'Lorinser','卡尔森':'Carlsson',
+              '哈雷戴维森':'Harley-Davidson','杜卡迪':'Ducati','宝马摩托车':'BMW Motorrad',
+              '本田摩托车':'Honda Motorcycles','雅马哈':'Yamaha','铃木摩托车':'Suzuki Motorcycles',
+              '川崎':'Kawasaki','凯旋':'Triumph','Moto Guzzi':'Moto Guzzi',
+              'Aprilia':'Aprilia','KTM':'KTM','Husqvarna':'Husqvarna',
+              '轩逸':'Sylphy','卡罗拉':'Corolla','凯美瑞':'Camry','普拉多':'Prado',
+              '汉兰达':'Highlander','兰德酷路泽':'Land Cruiser','皇冠':'Crown',
+              '锐志':'Reiz','花冠':'Corolla','威驰':'Vios','雅力士':'Yaris',
+              '埃尔法':'Alphard','普锐斯':'Prius','RAV4':'RAV4','C-HR':'C-HR',
+              '威兰达':'Wildlander','奕泽':'IZOA','天籁':'Teana','奇骏':'X-Trail',
+              '逍客':'Qashqai','骐达':'Tiida','阳光':'Sunny','蓝鸟':'Bluebird',
+              '楼兰':'Murano','途乐':'Patrol','纳瓦拉':'Navara','劲客':'Kicks',
+              '西玛':'Cima','雅阁':'Accord','思域':'Civic','CR-V':'CR-V',
+              '飞度':'Fit','奥德赛':'Odyssey','艾力绅':'Elysion','冠道':'Avancier',
+              '皓影':'Breeze','缤智':'Vezel','XR-V':'XR-V','英仕派':'Inspire',
+              '享域':'Envix','海豹':'Seal','海豚':'Dolphin','海鸥':'Seagull',
+              '汉':'Han','唐':'Tang','宋':'Song','秦':'Qin','元':'Yuan',
+              '腾势':'Denza','仰望':'YangWang','方程豹':'Fangchengbao','豹':'Leopard',
+              '星瑞':'Xingrui','星越':'Xingyue','博越':'Boyue','帝豪':'Emgrand',
+              '缤越':'Binyue','缤瑞':'Binrui','豪越':'Haoyue','ICON':'ICON',
+              '逸动':'Eado','CS75':'CS75','CS55':'CS55','CS35':'CS35',
+              'UNI-T':'UNI-T','UNI-K':'UNI-K','UNI-V':'UNI-V','H6':'H6','H9':'H9',
+              '大狗':'Big Dog','初恋':'First Love','赤兔':'Red Rabbit',
+              '神兽':'Divine Beast','酷狗':'Cool Dog','瑞虎':'Tiggo','艾瑞泽':'Arrizo',
+              '星途':'Exeed','捷途':'Jetour','ZS':'ZS','HS':'HS','MG6':'MG6',
+              'MG5':'MG5','MG7':'MG7','帕萨特':'Passat','迈腾':'Magotan',
+              '速腾':'Sagitar','朗逸':'Lavida','宝来':'Bora','高尔夫':'Golf',
+              '途观':'Tiguan','探岳':'Tayron','途昂':'Teramont','途岳':'Tharu',
+              '探歌':'T-Roc','凌渡':'Lamando','CC':'CC','辉腾':'Phaeton',
+              '辉昂':'Phideon','X5':'X5','X6':'X6','X3':'X3','X4':'X4','X7':'X7',
+              '3系':'3 Series','5系':'5 Series','7系':'7 Series',
+              '1系':'1 Series','2系':'2 Series','4系':'4 Series',
+              '8系':'8 Series','i3':'i3','i4':'i4','i5':'i5','i7':'i7',
+              'iX':'iX','iX3':'iX3','M3':'M3','M4':'M4','M5':'M5',
+              'M8':'M8','X3M':'X3M','X4M':'X4M','X5M':'X5M','X6M':'X6M',
+              'A级':'A-Class','B级':'B-Class','C级':'C-Class','E级':'E-Class',
+              'S级':'S-Class','GLA':'GLA','GLB':'GLB','GLC':'GLC',
+              'GLE':'GLE','GLS':'GLS','G级':'G-Class','V级':'V-Class',
+              'CLA':'CLA','CLS':'CLS','EQA':'EQA','EQB':'EQB','EQC':'EQC',
+              'EQE':'EQE','EQS':'EQS','AMG':'AMG','Maybach':'Maybach',
+              'A3':'A3','A4':'A4','A5':'A5','A6':'A6','A7':'A7','A8':'A8',
+              'Q3':'Q3','Q5':'Q5','Q7':'Q7','Q8':'Q8','e-tron':'e-tron',
+              'RS3':'RS3','RS4':'RS4','RS5':'RS5','RS6':'RS6','RS7':'RS7',
+              'ES':'ES','IS':'IS','LS':'LS','LX':'LX','NX':'NX','RX':'RX',
+              'UX':'UX','LM':'LM','LC':'LC','RC':'RC','GX':'GX',
+              'Cayenne':'Cayenne','Macan':'Macan','Panamera':'Panamera',
+              '911':'911','Taycan':'Taycan','Boxster':'Boxster','Cayman':'Cayman',
+              'Model 3':'Model 3','Model Y':'Model Y','Model S':'Model S','Model X':'Model X',
+              'Cybertruck':'Cybertruck','Roadster':'Roadster',
+              'ES6':'ES6','ES7':'ES7','ES8':'ES8','ET5':'ET5','ET7':'ET7',
+              'EC6':'EC6','EC7':'EC7','ES5':'ES5',
+              'P5':'P5','P7':'P7','G3':'G3','G6':'G6','G9':'G9','X9':'X9',
+              'L6':'L6','L7':'L7','L8':'L8','L9':'L9','ONE':'ONE','MEGA':'MEGA',
+              '001':'001','007':'007','009':'009','X':'X','FR':'FR',
+              'Free':'Free','Dream':'Dream','Passion':'Passion','Light':'Light',
+              'H5':'H5','H6':'H6','H9':'H9','HS5':'HS5','HS7':'HS7','E-HS9':'E-HS9',
+              'E-QM5':'E-QM5','EH7':'EH7','E-HS7':'E-HS7',
+              'SL03':'SL03','S7':'S7','L07':'L07','G318':'G318',
+              'M5':'M5','M7':'M7','M9':'M9',
+              'C01':'C01','C10':'C10','C11':'C11','C16':'C16','T03':'T03',
+              'U':'U','V':'V','S':'S','AYA':'AYA','GT':'GT',
+              '北京':'Beijing','上海':'Shanghai','广州':'Guangzhou','深圳':'Shenzhen',
+              '天津':'Tianjin','重庆':'Chongqing','杭州':'Hangzhou','武汉':'Wuhan',
+              '南京':'Nanjing','成都':'Chengdu','西安':'Xi\\'an','苏州':'Suzhou',
+              '长沙':'Changsha','郑州':'Zhengzhou','东莞':'Dongguan','青岛':'Qingdao',
+              '沈阳':'Shenyang','大连':'Dalian','厦门':'Xiamen','宁波':'Ningbo',
+              '昆明':'Kunming','合肥':'Hefei','福州':'Fuzhou','南昌':'Nanchang',
+              '济南':'Jinan','石家庄':'Shijiazhuang','太原':'Taiyuan','呼和浩特':'Hohhot',
+              '乌鲁木齐':'Urumqi','兰州':'Lanzhou','西宁':'Xining','银川':'Yinchuan',
+              '拉萨':'Lhasa','南宁':'Nanning','海口':'Haikou','贵阳':'Guiyang',
+              '长春':'Changchun','哈尔滨':'Harbin','台北':'Taipei','香港':'Hong Kong',
+              '澳门':'Macau','淄博':'Zibo','镇江':'Zhenjiang','扬州':'Yangzhou',
+              '徐州':'Xuzhou','常州':'Changzhou','南通':'Nantong','盐城':'Yancheng',
+              '淮安':'Huaian','连云港':'Lianyungang','泰州':'Taizhou','宿迁':'Suqian',
+              '无锡':'Wuxi','江阴':'Jiangyin','宜兴':'Yixing','溧阳':'Liyang',
+              '常熟':'Changshu','张家港':'Zhangjiagang','昆山':'Kunshan','太仓':'Taicang',
+              '中山':'Zhongshan','珠海':'Zhuhai','佛山':'Foshan','惠州':'Huizhou',
+              '江门':'Jiangmen','汕头':'Shantou','湛江':'Zhanjiang','茂名':'Maoming',
+              '肇庆':'Zhaoqing','清远':'Qingyuan','揭阳':'Jieyang','阳江':'Yangjiang',
+              '韶关':'Shaoguan','梅州':'Meizhou','汕尾':'Shanwei','河源':'Heyuan',
+              '潮州':'Chaozhou','云浮':'Yunfu','泉州':'Quanzhou','漳州':'Zhangzhou',
+              '三明':'Sanming','莆田':'Putian','南平':'Nanping','龙岩':'Longyan',
+              '宁德':'Ningde','九江':'Jiujiang','赣州':'Ganzhou','宜春':'Yichun',
+              '上饶':'Shangrao','吉安':'Ji\\'an','抚州':'Fuzhou','景德镇':'Jingdezhen',
+              '萍乡':'Pingxiang','新余':'Xinyu','鹰潭':'Yingtian','枣庄':'Zaozhuang',
+              '东营':'Dongying','烟台':'Yantai','潍坊':'Weifang','济宁':'Jining',
+              '泰安':'Tai\\'an','威海':'Weihai','日照':'Rizhao','临沂':'Linyi',
+              '德州':'Dezhou','聊城':'Liaocheng','滨州':'Binzhou','菏泽':'Heze',
+              '开封':'Kaifeng','洛阳':'Luoyang','平顶山':'Pingdingshan','安阳':'Anyang',
+              '鹤壁':'Hebi','新乡':'Xinxiang','焦作':'Jiaozuo','濮阳':'Puyang',
+              '许昌':'Xuchang','漯河':'Luohe','三门峡':'Sanmenxia','南阳':'Nanyang',
+              '商丘':'Shangqiu','信阳':'Xinyang','周口':'Zhoukou','驻马店':'Zhumadian',
+              '济源':'Jiyuan','黄石':'Huangshi','十堰':'Shiyan','宜昌':'Yichang',
+              '襄阳':'Xiangyang','鄂州':'Ezhou','荆门':'Jingmen','孝感':'Xiaogan',
+              '荆州':'Jingzhou','黄冈':'Huanggang','咸宁':'Xianning','随州':'Suizhou',
+              '恩施':'Enshi','仙桃':'Xiantao','潜江':'Qianjiang','天门':'Tianmen',
+              '神农架':'Shennongjia','株洲':'Zhuzhou','湘潭':'Xiangtan','衡阳':'Hengyang',
+              '邵阳':'Shaoyang','岳阳':'Yueyang','常德':'Changde','张家界':'Zhangjiajie',
+              '益阳':'Yiyang','郴州':'Chenzhou','永州':'Yongzhou','怀化':'Huaihua',
+              '娄底':'Loudi','湘西':'Xiangxi','柳州':'Liuzhou','桂林':'Guilin',
+              '梧州':'Wuzhou','北海':'Beihai','防城港':'Fangchenggang','钦州':'Qinzhou',
+              '贵港':'Guigang','玉林':'Yulin','百色':'Baise','贺州':'Hezhou',
+              '河池':'Hechi','来宾':'Laibin','崇左':'Chongzuo','三亚':'Sanya',
+              '三沙':'Sansha','儋州':'Danzhou','琼海':'Qionghai','万宁':'Wanning',
+              '东方':'Dongfang','五指山':'Wuzhishan','文昌':'Wenchang','临高':'Lingao',
+              '澄迈':'Chengmai','定安':'Ding\\'an','屯昌':'Tunchang','陵水':'Lingshui',
+              '保亭':'Baoting','琼中':'Qiongzhong','乐东':'Ledong','昌江':'Changjiang',
+              '白沙':'Baisha',
+              '增程式':'EREV','插电式':'PHEV','纯电动':'Electric','油电混合':'Hybrid',
+              '汽油':'Gasoline','柴油':'Diesel','电动':'Electric','混动':'Hybrid',
+              '涡轮增压':'Turbo','自然吸气':'Naturally Aspirated','机械增压':'Supercharged',
+              '马力':'HP','千瓦':'kW','L4':'L4','V6':'V6','V8':'V8','V12':'V12',
+              '轿车':'Sedan','SUV':'SUV','MPV':'MPV','跑车':'Sports Car',
+              '敞篷':'Convertible','掀背':'Hatchback','旅行':'Wagon','皮卡':'Pickup',
+              '轿跑':'Coupe','双门':'Coupe','四门':'Sedan','两厢':'Hatchback',
+              '三厢':'Sedan','旅行车':'Wagon','中型':'Mid-size','大型':'Full-size',
+              '紧凑':'Compact','微型':'Micro',
+              '自动':'Automatic','手动':'Manual','CVT':'CVT','DCT':'DCT',
+              '无级变速':'CVT','双离合':'DCT','手自一体':'Tiptronic',
+              'E-CVT':'E-CVT','AT':'AT','MT':'MT','AMT':'AMT',
+              '湿式双离合':'Wet DCT','干式双离合':'Dry DCT',
+              '前置前驱':'FWD','前置后驱':'RWD','四驱':'AWD','两驱':'2WD',
+              '前驱':'FWD','后驱':'RWD','全时四驱':'Full-time AWD',
+              '适时四驱':'Part-time AWD','分时四驱':'Part-time 4WD',
+              '白色':'White','黑色':'Black','银/灰色':'Silver','蓝色':'Blue',
+              '红色':'Red','绿色':'Green','黄色':'Yellow','橙色':'Orange',
+              '紫色':'Purple','棕色':'Brown','金色':'Gold','粉色':'Pink',
+              '灰色':'Gray','深蓝':'Dark Blue','深红':'Dark Red','深灰':'Dark Gray',
+              '珍珠白':'Pearl White','金属灰':'Metallic Gray','午夜蓝':'Midnight Blue',
+              '暗夜黑':'Night Black','月光银':'Moonlight Silver','深空灰':'Space Gray',
+              '全新':'New','准新车':'Like New','无事故':'Accident-free',
+              '一手车':'One Owner','精品车况':'Excellent Condition',
+              '原版原漆':'Original Paint','无改装':'Unmodified',
+              '有事故':'Accident','火烧车':'Fire Damage','水泡车':'Flood Damage',
+              '国VI':'Euro-6','国V':'Euro-5','国IV':'Euro-4','国III':'Euro-3',
+              '国六':'Euro-6','国五':'Euro-5','国四':'Euro-4','国三':'Euro-3',
+              '年':'','г.':'','год':'','月':'','日':'','公里':' km','万':'',
+              'L':'L','T':'T','马力':' HP','千瓦':' kW',
+              '天然气':'CNG','液化气':'LPG','混合燃料':'Flex Fuel','氢':'Hydrogen',
+              '天窗':'Sunroof','真皮':'Leather','导航':'Navigation',
+              '倒车':'Reverse','雷达':'Radar','影像':'Camera',
+              '全景':'Panoramic','巡航':'Cruise','自适应':'Adaptive',
+              '车道':'Lane','偏离':'Departure','预警':'Warning',
+              '自动泊车':'Auto Park','自动空调':'Auto AC','座椅加热':'Seat Heating',
+              '座椅通风':'Seat Ventilation','座椅按摩':'Seat Massage','氛围灯':'Ambient Light',
+              '无钥匙':'Keyless','一键启动':'Push Start','电动尾门':'Power Tailgate',
+              '感应雨刷':'Rain Sensor','自动大灯':'Auto Headlights','日行灯':'DRL',
+              'LED大灯':'LED Headlights','激光大灯':'Laser Headlights','矩阵大灯':'Matrix Headlights',
+              '抬头显示':'HUD','全液晶仪表':'Digital Cluster','中控大屏':'Central Screen',
+              '无线充电':'Wireless Charging','车载WiFi':'Car WiFi','OTA升级':'OTA Updates',
+              '城市':'City','乡村':'Country','高速':'Highway',
+              '自动挡':'Automatic','手动挡':'Manual','手自一体':'Tiptronic',
+              '新车':'New Car','二手车':'Used Car','试驾车':'Test Drive Car',
+              '展车':'Display Car','库存车':'Inventory Car','定制车':'Custom Car',
+              '进口':'Imported','国产':'Domestic','合资':'Joint Venture',
+              '豪华':'Luxury','运动':'Sport','旗舰':'Flagship','标准':'Standard',
+              '加长':'LWB','短轴':'SWB','高性能':'High Performance'
+            };
+            
+            // ============================================================
+            // ВСПОМОГАТЕЛЬНЫЕ ФУНКЦИИ (ПОЛНОСТЬЮ ИЗ ВАШЕГО КОДА)
+            // ============================================================
+            
+            function translate(text) {
+              if (!text) return text || '';
+              let result = String(text);
+              for (let [key, value] of Object.entries(TRANSLATIONS)) {
+                result = result.replace(new RegExp(key, 'g'), value);
+              }
+              result = result.replace(/[\\u4e00-\\u9fff]/g, ' ');
+              result = result.replace(/\\s+/g, ' ').trim();
+              result = result.replace(/Dark Blue/g, 'Deepal');
+              result = result.replace(/M\\s*Performance/g, '');
+              return result || text;
+            }
+            
+            function getModel(car) {
+              let brand = translate(car.brandname || '');
+              let series = translate(car.seriesname || '');
+              let carname = translate(car.carname || '');
+              let modelName = '';
+              if (series && series.length > 0 && series !== 'Без названия') {
+                modelName = series.replace(/\\d{4}/g, '').replace(/款/g, '').replace(/г\\./g, '').replace(/год/g, '').replace(/\\s+/g, ' ').trim();
+              } else if (carname && carname.length > 0 && carname !== 'Без названия') {
+                modelName = carname.replace(/\\d{4}/g, '').replace(/款/g, '').replace(/г\\./g, '').replace(/год/g, '').replace(/\\s+/g, ' ').trim();
+              }
+              if (brand && modelName.toLowerCase().startsWith(brand.toLowerCase())) {
+                modelName = modelName.substring(brand.length).trim();
+              }
+              if (brand && modelName && modelName.length > 0) {
+                return brand + ' ' + modelName;
+              }
+              if (brand) return brand;
+              if (modelName && modelName.length > 0) return modelName;
+              return 'Без названия';
+            }
+            
+            function getFullTitle(car) {
+              let brand = translate(car.brandname || '');
+              let series = translate(car.seriesname || '');
+              let carname = translate(car.carname || '');
+              let year = cleanYear(car.firstregyear || '');
+              let modelName = '';
+              if (series && series.length > 0 && series !== 'Без названия') {
+                modelName = series.replace(/\\d{4}/g, '').replace(/款/g, '').replace(/г\\./g, '').replace(/год/g, '').replace(/\\s+/g, ' ').trim();
+              } else if (carname && carname.length > 0 && carname !== 'Без названия') {
+                modelName = carname.replace(/\\d{4}/g, '').replace(/款/g, '').replace(/г\\./g, '').replace(/год/g, '').replace(/\\s+/g, ' ').trim();
+              }
+              if (brand && modelName.toLowerCase().startsWith(brand.toLowerCase())) {
+                modelName = modelName.substring(brand.length).trim();
+              }
+              let parts = [];
+              if (brand) parts.push(brand);
+              if (modelName && modelName.length > 0) parts.push(modelName);
+              if (year) parts.push(year);
+              return parts.length > 0 ? parts.join(' ') : (brand || 'Без названия');
+            }
+            
+            function cleanYear(value) {
+              if (!value) return '';
+              let y = String(value).replace(/[^0-9]/g, '');
+              if (y.length === 2) y = '20' + y;
+              if (y.length === 1) y = '200' + y;
+              if (y.length > 4) y = y.substring(0, 4);
+              return y;
+            }
+            
+            function fixImageUrl(url) {
+              if (!url) return '';
+              let s = String(url).trim();
+              if (s.startsWith('//')) s = 'https:' + s;
+              if (s.startsWith('/')) s = 'https://2sc2.autoimg.cn' + s;
+              if (s.includes('autoimg.cn') || s.includes('alicdn') || s.includes('aliyuncs')) {
+                return 'https://images.weserv.nl/?url=' + encodeURIComponent(s) + '&w=800&output=webp&we=1';
+              }
+              return s;
+            }
+            
+            function getImages(car) {
+              let imgs = [];
+              if (car.imageurl) {
+                let img = fixImageUrl(car.imageurl);
+                if (img) imgs.push(img);
+              }
+              if (car.piclist) {
+                for (let p of car.piclist) {
+                  let img = fixImageUrl(p);
+                  if (img && !imgs.includes(img)) imgs.push(img);
+                }
+              }
+              if (!imgs.length) {
+                imgs.push('https://via.placeholder.com/400x300/EAEAEA/AAAAAA?text=Фото+нет');
+              }
+              return imgs;
+            }
+            
+            function calcPrice(price, rate) {
+              if (!price || price <= 0) return 0;
+              return Math.round((price * 10000 + 25000) * rate / 100) * 100;
+            }
+            
+            function getEngineType(car) {
+              let all = [car.engine || '', car.fuelname || '', car.fuelType || '', car.powerType || '', car.energyType || ''].join(' ').toLowerCase();
+              if (['纯电动', '纯电', '电动', 'электро', 'electric', 'ev', 'bev', '新能源', 'new energy', 'электромобиль'].some(k => all.includes(k))) {
+                if (['бензин', 'дизель', '汽油', '柴油'].some(k => all.includes(k))) return 'ice';
+                return 'electric';
+              }
+              if (['增程式', '插电式', 'гибрид', '油电', 'hybrid', 'phev', 'erev', '混合动力', '混动'].some(k => all.includes(k))) return 'hybrid';
+              if (car.isNewEnergy === 1 || car.newEnergy === 1) {
+                if (['бензин', 'дизель', '汽油', '柴油'].some(k => all.includes(k))) return 'ice';
+                return 'electric';
+              }
+              return 'ice';
+            }
+            
+            function extractPower(str) {
+              if (!str) return '';
+              let s = String(str);
+              let m = s.match(/(\\d+)\\s*马力/);
+              if (m) return parseInt(m[1]) + ' HP';
+              m = s.match(/(\\d+)\\s*千瓦/);
+              if (m) return parseInt(m[1]) + ' kW';
+              m = s.match(/(\\d+)\\s*(HP|kW|кВт|лс)/i);
+              if (m) return m[1] + ' ' + m[2].toUpperCase();
+              return '';
+            }
+            
+            function getTransmissionType(gear) {
+              if (!gear) return 'unknown';
+              let s = String(gear).toLowerCase();
+              if (s.includes('手动') || s.includes('manual')) return 'Manual';
+              if (s.includes('自动') || s.includes('automatic')) {
+                if (s.includes('cvt') || s.includes('无级变速')) return 'CVT';
+                if (s.includes('dct') || s.includes('双离合')) return 'DCT';
+                if (s.includes('手自一体')) return 'Tiptronic';
+                return 'Automatic';
+              }
+              return 'Automatic';
+            }
+            
+            function getDriveType(drive) {
+              if (!drive) return 'unknown';
+              let s = String(drive).toLowerCase();
+              if (s.includes('四驱') || s.includes('awd')) return 'AWD';
+              if (s.includes('后驱') || s.includes('rwd')) return 'RWD';
+              if (s.includes('前驱') || s.includes('fwd')) return 'FWD';
+              return 'unknown';
+            }
+            
+            function getBodyType(level) {
+              if (!level) return 'unknown';
+              let s = String(level).toLowerCase();
+              if (s.includes('suv')) return 'SUV';
+              if (s.includes('sedan') || s.includes('轿车')) return 'Sedan';
+              if (s.includes('mpv')) return 'MPV';
+              if (s.includes('hatchback') || s.includes('掀背')) return 'Hatchback';
+              if (s.includes('wagon') || s.includes('旅行')) return 'Wagon';
+              if (s.includes('pickup') || s.includes('皮卡')) return 'Pickup';
+              if (s.includes('sports') || s.includes('跑车')) return 'Sports Car';
+              if (s.includes('convertible') || s.includes('敞篷')) return 'Convertible';
+              if (s.includes('coupe') || s.includes('双门')) return 'Coupe';
+              return 'SUV';
+            }
+            
+            // ============================================================
+            // ОСНОВНАЯ ФУНКЦИЯ ЗАГРУЗКИ
+            // ============================================================
+            
+            async function loadAllData() {
+              console.log('🔄 Загрузка данных из', SOURCES.length, 'источников...');
+              let allCars = [];
+              let errors = [];
+              let currencyRate = 0.42753;
+              
+              // Получаем курс
+              try {
+                const rateResponse = await fetch('https://api.nbrb.by/exrates/rates/CNY?parammode=2');
+                if (rateResponse.ok) {
+                  const rateData = await rateResponse.json();
+                  if (rateData.Cur_OfficialRate > 0) {
+                    currencyRate = rateData.Cur_OfficialRate / 10;
+                    console.log('💰 Курс CNY:', currencyRate);
+                  }
+                }
+              } catch (e) {
+                console.warn('⚠️ Ошибка получения курса, используем значение по умолчанию');
+              }
+              
+              for (const source of SOURCES) {
+                try {
+                  console.log('📥 Загрузка:', source.name);
+                  const response = await fetch(source.url);
+                  
+                  if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                  }
+                  
+                  const data = await response.json();
+                  
+                  if (!Array.isArray(data)) {
+                    throw new Error('Ответ не является массивом');
+                  }
+                  
+                  if (data.length === 0) {
+                    console.warn('⚠️', source.name, 'вернул пустой массив');
+                    continue;
+                  }
+                  
+                  // Обрабатываем каждый автомобиль
+                  const processed = data.map(car => {
+                    const brand = translate(car.brandname || '');
+                    const series = translate(car.seriesname || '');
+                    const model = getModel(car);
+                    const fullTitle = getFullTitle(car);
+                    const engineType = getEngineType(car);
+                    const mileage = car.mileage ? Math.round(parseFloat(car.mileage) * 10000) : null;
+                    const isNew = mileage !== null && mileage <= 1000;
+                    const year = cleanYear(car.firstregyear || '');
+                    
+                    return {
+                      id: car.id || car.infoid || Math.random().toString(36).substr(2, 9),
+                      infoid: car.infoid || car.id || Math.random().toString(36).substr(2, 9),
+                      brand: brand,
+                      series: series,
+                      model: model,
+                      full_title: fullTitle,
+                      year: year,
+                      engine: translate(car.engine || ''),
+                      engine_type: engineType,
+                      displacement: car.displacement ? car.displacement + 'L' : '',
+                      power: extractPower(car.engine || ''),
+                      fuel_type: engineType === 'electric' ? 'Electric' : engineType === 'hybrid' ? 'Hybrid' : 'Gasoline',
+                      transmission: getTransmissionType(car.gearbox || ''),
+                      transmission_detail: translate(car.gearbox || ''),
+                      drive: getDriveType(car.drivingmode || ''),
+                      drive_detail: translate(car.drivingmode || ''),
+                      body_type: getBodyType(car.levelname || ''),
+                      body_detail: translate(car.levelname || ''),
+                      color: translate(car.colorname || ''),
+                      mileage: mileage,
+                      is_new: isNew,
+                      price_cny: car.price || 0,
+                      price_byn: calcPrice(car.price || 0, currencyRate),
+                      images: getImages(car),
+                      image_main: car.imageurl ? fixImageUrl(car.imageurl) : '',
+                      city: translate(car.cname || car.city || ''),
+                      province: translate(car.provincename || ''),
+                      vin: car.vincode || '',
+                      description: translate(car.remark || ''),
+                      views: car.followcount || 0,
+                      is_new_energy: car.isNewEnergy === 1 || car.newEnergy === 1
+                    };
+                  });
+                  
+                  allCars.push(...processed);
+                  console.log('✅', source.name, 'загружено:', processed.length);
+                  
+                } catch (error) {
+                  console.error('❌ Ошибка', source.name, ':', error.message);
+                  errors.push(source.name + ': ' + error.message);
+                }
+              }
+              
+              console.log('📊 Всего загружено:', allCars.length);
+              if (errors.length) {
+                console.warn('⚠️ Ошибки:', errors);
+              }
+              
+              return {
+                success: true,
+                count: allCars.length,
+                timestamp: new Date().toISOString(),
+                cars: allCars,
+                errors: errors
+              };
+            }
+            
+            // ============================================================
+            // ЗАПУСК
+            // ============================================================
+            
+            loadAllData()
+              .then(data => {
+                const json = JSON.stringify(data, null, 2);
+                fs.writeFileSync('catalog.json', json);
+                console.log('💾 Файл catalog.json сохранен!');
+                console.log('📊 Всего машин:', data.count);
+                if (data.errors && data.errors.length) {
+                  console.warn('⚠️ Ошибок:', data.errors.length);
+                }
+                process.exit(0);
+              })
+              .catch(error => {
+                console.error('❌ Критическая ошибка:', error);
+                process.exit(1);
+              });
+          "
+      
+      - name: Commit and push changes
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add catalog.json
+          git diff --staged --quiet || git commit -m "Update catalog data [skip ci]"
+          git push
