@@ -1,14 +1,14 @@
 {
   "success": true,
   "count": 0,
-  "timestamp": "2026-09-23T16:11:05.815Z",
+  "timestamp": "2026-09-23T21:08:17.095Z",
   "cars": [],
   "errors": [
     "CHANGAN: HTTP 403",
     "BYD: HTTP 403",
     "ZEEKR: HTTP 403",
     "LIXIANG: HTTP 403",
-    "VOYAH: HTTP 403",
+    "VOYAH: HTTP 500",
     "HONGQI: HTTP 403",
     "GEELY: HTTP 403",
     "DEEPAL: HTTP 403",
@@ -18,7 +18,7 @@
     "VOLKSWAGEN: HTTP 403",
     "TOYOTA: HTTP 403",
     "NISSAN: HTTP 403",
-    "MAZDA: HTTP 403",
+    "MAZDA: HTTP 500",
     "HYUNDAI: HTTP 403"
   ]
 }
