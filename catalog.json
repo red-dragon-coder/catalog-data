@@ -1,7 +1,7 @@
 {
   "success": true,
   "count": 0,
-  "timestamp": "2026-11-23T17:38:42.690Z",
+  "timestamp": "2026-11-24T03:50:35.104Z",
   "cars": [],
   "errors": [
     "CHANGAN: HTTP 404",
@@ -12,13 +12,13 @@
     "HONGQI: HTTP 404",
     "GEELY: HTTP 404",
     "DEEPAL: HTTP 404",
-    "MERCEDES-BENZ: HTTP 403",
-    "BMW: HTTP 403",
-    "AUDI: HTTP 403",
-    "VOLKSWAGEN: HTTP 403",
-    "TOYOTA: HTTP 403",
-    "NISSAN: HTTP 403",
-    "MAZDA: HTTP 403",
-    "HYUNDAI: HTTP 403"
+    "MERCEDES-BENZ: HTTP 404",
+    "BMW: HTTP 404",
+    "AUDI: HTTP 404",
+    "VOLKSWAGEN: HTTP 404",
+    "TOYOTA: HTTP 404",
+    "NISSAN: HTTP 404",
+    "MAZDA: HTTP 404",
+    "HYUNDAI: HTTP 404"
   ]
 }
